@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tool Dịch SRT - Developer Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-main: #0d1117;
+    --bg-panel: #161b22;
+    --bg-header: #010409;
+    --border: #30363d;
+    --text-main: #c9d1d9;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --success: #2ea043;
+    --success-hover: #3fb950;
+    --danger: #f85149;
+    --warning: #d29922;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Fira Code', monospace;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    padding: 2rem;
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 1200px;
+  }
+
+  header {
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    text-shadow: 0 0 10px rgba(88, 166, 255, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-panel);
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .file-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  input[type="file"] {
+    font-family: 'Fira Code', monospace;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  input[type="file"]::file-selector-button {
+    background: var(--bg-main);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Fira Code', monospace;
+    transition: all 0.2s;
+  }
+
+  input[type="file"]::file-selector-button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 1rem;
+  }
+
+  button {
+    font-family: 'Fira Code', monospace;
+    padding: 0.6rem 1.2rem;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-run {
+    background-color: var(--success);
+    color: #fff;
+    border: 1px solid rgba(240, 246, 252, 0.1);
+    box-shadow: 0 0 15px rgba(46, 160, 67, 0.2);
+  }
+
+  .btn-run:hover {
+    background-color: var(--success-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(46, 160, 67, 0.4);
+  }
+
+  .btn-download {
+    background-color: var(--bg-main);
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  .btn-download:hover:not(:disabled) {
+    border-color: var(--accent);
+    box-shadow: 0 0 15px rgba(88, 166, 255, 0.2);
+  }
+
+  button:disabled {
+    background: #21262d;
+    color: var(--text-muted);
+    border-color: var(--border);
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* IDE Grid Layout */
+  .ide-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 850px) {
+    .ide-grid {
+      grid-template-columns: 1fr;
+    }
+    .toolbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  /* Code Window Panels */
+  .window {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .window-header {
+    background: var(--bg-header);
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mac-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .dot.red { background-color: #ff5f56; }
+  .dot.yellow { background-color: #ffbd2e; }
+  .dot.green { background-color: #27c93f; }
+
+  .window-title {
+    margin: 0 auto;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    transform: translateX(-20px); /* offset the dots */
+  }
+
+  textarea {
+    width: 100%;
+    height: 60vh;
+    background: transparent;
+    color: var(--accent);
+    border: none;
+    padding: 1rem;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9rem;
+    resize: none;
+    outline: none;
+    line-height: 1.6;
+  }
+
+  /* Syntax color simulate */
+  #output {
+    color: #a5d6ff;
+  }
+
+  textarea::placeholder {
+    color: #484f58;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg-header);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 5px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+
+  /* Loading animation */
+  .blinking-cursor::after {
+    content: '_';
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h2><span style="color:var(--accent)">{</span> Dịch Phụ Đề SRT <span style="color:var(--accent)">}</span></h2>
+  </header>
+
+  <div class="toolbar">
+    <div class="file-input-wrapper">
+      <span style="color:var(--accent);">📂</span>
+      <input type="file" id="file" accept=".srt">
+    </div>
+    
+    <div class="btn-group">
+      <button class="btn-run" id="btnTranslate" onclick="doTranslate()">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M10.804 8 5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z"/></svg>
+        Dịch (Compile)
+      </button>
+      <button class="btn-download" id="downloadBtn" onclick="downloadResult()" disabled>
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>
+        Tải file (.srt)
+      </button>
+    </div>
+  </div>
+
+  <div class="ide-grid">
+    <!-- Window Input -->
+    <div class="window">
+      <div class="window-header">
+        <div class="mac-dots">
+          <div class="dot red"></div>
+          <div class="dot yellow"></div>
+          <div class="dot green"></div>
+        </div>
+        <div class="window-title">input.srt</div>
+      </div>
+      <textarea id="input" placeholder="// Chọn file ở trên hoặc dán nội dung srt vào đây..."></textarea>
+    </div>
+
+    <!-- Window Output -->
+    <div class="window">
+      <div class="window-header">
+        <div class="mac-dots">
+          <div class="dot red"></div>
+          <div class="dot yellow"></div>
+          <div class="dot green"></div>
+        </div>
+        <div class="window-title">translated.srt</div>
+      </div>
+      <textarea id="output" placeholder="// Kết quả sẽ được in ra tại đây..." readonly></textarea>
+    </div>
+  </div>
+</div>
+
+<script>
+let lastResult = "";
+
+async function doTranslate() {
+  const file = document.getElementById("file").files[0];
+  const text = document.getElementById("input").value;
+
+  const form = new FormData();
+  if (file) form.append("file", file);
+  else form.append("srt", text);
+
+  const outputArea = document.getElementById("output");
+  const translateBtn = document.getElementById("btnTranslate");
+  
+  // Hiệu ứng terminal khi đang dịch
+  outputArea.value = "> System is translating. Please wait...\n> Status: Processing";
+  outputArea.classList.add("blinking-cursor");
+  document.getElementById("downloadBtn").disabled = true;
+  translateBtn.disabled = true;
+  translateBtn.innerHTML = "⏳ Running...";
+
+  try {
+    const res = await fetch("/translate", {
+      method: "POST",
+      body: form
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      lastResult = data.data;
+      outputArea.value = lastResult;
+      document.getElementById("downloadBtn").disabled = false;
+    } else {
+      outputArea.value = "> Error: " + data.error;
+    }
+  } catch (err) {
+    outputArea.value = "> Fatal Error: " + err.message;
+  } finally {
+    outputArea.classList.remove("blinking-cursor");
+    translateBtn.disabled = false;
+    translateBtn.innerHTML = `<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M10.804 8 5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z"/></svg> Dịch (Compile)`;
+  }
+}
+
+function downloadResult() {
+  if (!lastResult) return;
+
+  const blob = new Blob([lastResult], { type: "text/plain;charset=utf-8" });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "translated.srt";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>
